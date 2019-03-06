@@ -1,0 +1,60 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:10.14.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-dependency-cache-{{ checksum "package.json" }}
+      - add_ssh_keys:
+          fingerprints:
+            - "2a:ce:76:7b:c1:f2:22:12:41:77:03:cd:78:00:cf:24"
+      - run:
+          name: yarn install
+          command: |
+            yarn install --no-optional --pure-lockfile
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run:
+          name: yarn test
+          command: |
+            yarn test
+      - run:
+          name: yarn build
+          command: |
+            yarn build:prod
+      - persist-to-workspace:
+          root: .
+          paths:
+            - dist
+
+  deploy:
+    docker:
+      - image: tushar00jain/deployments:0.0.1
+    steps:
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Upload to S3
+          command: |
+            aws s3 cp workspace/dist/ ${BUCKET_ID}/ --recursive
+      - run:
+          name: Invalidate Cloudfront Cache
+          command: |
+            aws cloudfront create-invalidation --distribution-id ${DISTRIBUTION_ID} --paths "/*"
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - deploy

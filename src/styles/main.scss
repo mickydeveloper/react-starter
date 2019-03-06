@@ -1,0 +1,25 @@
+﻿@import "variables";
+@import "typography/font-face";
+
+html {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  font-display: "Roboto", "sans-serif";
+}
+
+body {
+  @include font-light;
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0;
+}
+
+.img-flex {
+  max-width: 100%;
+}
